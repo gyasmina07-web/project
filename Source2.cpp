@@ -1,48 +1,108 @@
-﻿class Account {
+﻿class Client {
+private:
+	int id;
+	string name;
+public:
+	Client(int id,string name):id(id),name(name){}
+	int getId() const {
+		return id;
+	}
+	string getName() const {
+		return name;
+	}
+};
+
+class Account {
 protected:
-	string owner;
+	int accountId;
+	Client client;
 	double balance;
 public:
-	Account(string owner, double balance = 0) :owner(owner), balance(balance) {}
+	Account(int accountId,Client client, double balance = 0) :accountId(accountId),client(client), balance(balance) {}
 	virtual ~Account() = default;
 	virual void deposit(double amount) {
 		balance += amount;
 	}
+	int getAccountId() const {
+		return accountId;
+	}
+	string getOwnerName() const {
+		return client.getName();
+	}
+	virtual string getType() const = 0;
+	virtual void deposit(double amount) {
+		if (amount <= 0) {
+			throw invalid_argument("deposit amount must be positive");
+		}
+		balance += amount;
+	}
 	virtual void withdraw(double amount) {
+		if (amount <= 0) {
+			throw invalid_argument("withdrawal amount must be positive");
+		}
 		if (balance < amount) {
 			throw runtime_error("not enough money");
 		}
-		else {
-			balance -= amount;
-		}
+		balance -= amount;
 	}
 	double getBalance() const { return balance };
 	virtual void applyMonthly() = 0;
+	virtual void printInfo() const {
+
+		cout << left << setw(12) << accountId
+
+			<< setw(18) << getOwnerName()
+
+			<< setw(18) << getType()
+
+			<< fixed << setprecision(2) << balance << endl
+	}
 };
 class SavingsAccount :public Account {
 protected:
 	double interestRate;
 public:
-	SavingsAccount(string owner, double balance = 0, double rate) :Account(owner, balance), interestRate(rate) {}
+	SavingsAccount(int accountId, Client client, double balance = 0, double rate) :Account(accountId, client, balance), interestRate(rate) {}
 	void applyMonthly() override {
 		balance += balance * interestRate;
 	}
+	string getType() const override {
+		return "Savings";
+	}
+	
 };
 class CheckingAccount :public Account {
 protected:
 	double fee;
 public:
-	CheckingAccount(string owner, double balance = 0, double fee) :Account(owner, balance), fee(fee) {}
+	CheckingAccount(int accountId, Client client, double balance = 0, double fee) :Account(accountId,client, balance), fee(fee) {}
 	void withdraw() override {
 		Account::withdraw(amount + fee);
 	}
-	void applyMonthly() override {}
+	string getType() const override {
+		return "Checking";
+	}
+	void applyMonthly() override {
+		if (balance >= fee) {
+			balance -= fee;
+		}
+	}
 };
 class CreditAccount :public Account {
 protected:
 	double debtRate;
-	CreditAccount(string ownwer, double balance = 0, double debt) :Account(owner, balance), debtRate(debt) {}
-	void withdraw() override {
+	double creditlimit;
+	CreditAccount(int accountId, Client client, double balance = 0,double limit, double debt) :Account(accountId, client, balance), creditlimit(limit),debtRate(debt) {}
+	string getType() const override {
+		return "Credit";
+	}
+	void withdraw(double amount) override {
+		if (amount <= 0) {
+			throw invalid_argument("Withdraw amount must be positive");
+		}
+		if (balance - amount < -creditlimit) {
+			throw runtime_error("Credit limit exeeded");
+		}
 		balance -= amount;
 	}
 	void applyMonthly() override {
